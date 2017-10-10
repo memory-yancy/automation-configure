@@ -1,0 +1,23 @@
+# Use tmux's multi-pane to monitor OS perf in a tmux's window target with 600px height of the
+# guake[1] or drop-down-terminal[2].
+# NOTES:
+#       [1] guake: https://github.com/Guake/guake
+#       [2] drop-down-terminal: https://extensions.gnome.org/extension/442/drop-down-terminal
+
+# 50 percentage and horizontal split to use top
+split-window -h -p50 "top -u $USER -c"
+
+# 27 percentage and vertical split to monitor CPU
+split-window -v -p27 "sar -P ALL 1"
+
+# Jump pane-0 then 30 percentage and vertical split to use free
+select-pane -t0; split-window -v -p20 "free -h -s 1"
+
+# Jump pane-0 again then 60 percentage and vertical split to monitor disk I/O
+select-pane -t0; split-window -v -p60 "iostat -N -h 1"
+
+# Jump pane-0 finally as well as 40 percentage and vertical split to monitor network info
+# Here, no better way to achieve automate call [sar -n DEV 1] command since multi-window tasks exists,
+# so you must run it personally.
+select-pane -t0
+

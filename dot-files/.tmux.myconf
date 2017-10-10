@@ -1,0 +1,16 @@
+# User-defined tmux
+
+# Set status-bar color=blue
+set -g status-bg "blue"
+
+# Be suitable for my work
+split-window -v -p27 "sar -nDEV 3"
+split-window -h -p60 "top -u $USER -d5 -c"
+split-window -h -p25
+# Display battery info every 10s
+split-window -v -p30 "watch -n10 cat /sys/class/power_supply/BAT0/capacity"
+clock-mode -t3
+select-pane -t0
+split-window -h -p40
+select-pane -t0
+

@@ -1,0 +1,39 @@
+# Refer to: https://github.com/kulong0105/os-config/blob/master/git/.gitconfig
+
+[user]
+    name =  Chenyang Yan
+    email = root@memory-yancy.com
+[alias]
+    lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    lg2 = log --color --graph --pretty=format:'%h %ad | %s%d [%an]' --abbrev-commit --date=short
+    sw = show --pretty=raw
+    sw2 = show --format=fuller --stat --patch -w -M
+    sw3 = show --format=fuller --stat --patch -w -M --word-diff-regex=.
+    st = status
+    co = checkout
+    ci = commit
+    br = branch
+    unstage = reset HEAD
+    pf = pull --ff-only
+    type = cat-file -t
+    dump = cat-file -p
+    d = diff --stat -u
+[color]
+    ui = true
+    diff= true
+[format]
+    numbered = auto
+    signoff = true
+[push]
+    default = simple
+[diff]
+    renames = true
+
+#[sendemail]
+#    smtpserver = mail.sky-data.cn
+#    smtpuser =
+#    smtpencryption = tls
+#    smtpserverport = 587
+#    smtppass =
+#    to =
+#    cc =

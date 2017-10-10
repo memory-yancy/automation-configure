@@ -1,0 +1,7 @@
+# See https://conda.io/docs/config.html for more information about this file.
+
+auto_update_conda: False
+show_channel_urls: True
+anaconda_upload: False
+always_yes: True
+

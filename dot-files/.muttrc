@@ -1,0 +1,55 @@
+set imap_user = "memory.yancy@gmail.com"
+set imap_pass = ""
+
+set smtp_url = "smtp://memory.yancy@gmail.com@smtp.gmail.com:25/"
+
+# Refer to: https://gist.github.com/mottram/387298/2192f09335c3fb06db50c747c4e3833afbc641c9
+set folder = "imaps://imap.gmail.com:993"
+set spoolfile = "+INBOX"
+set imap_check_subscribed
+set hostname = gmail.com
+set mail_check = 120
+set timeout = 300
+set imap_keepalive = 300
+set postponed = "+[Mail]/Drafts"
+set header_cache=~/.mutt/cache/headers
+set record = "~/.mutt/sent-`date +%F`"
+set message_cachedir=~/.mutt/cache/bodies
+set certificate_file=~/.mutt/certificates
+set move = no
+set include = ask-yes
+set sort = 'threads'
+set sort_aux = 'reverse-last-date-received'
+set auto_tag = yes
+set editor = "vim"
+set quit = ask-yes
+
+# Using msmtp with mutt
+set sendmail="/usr/bin/msmtp"
+set realname = "Chenyang Yan"
+set from = "root@memory-yancy.com"
+# Comments refer to: https://fancyseeker.github.io/2015/08/19/mutt/
+set use_from = yes
+set envelope_from = yes
+
+# Multiple accounts
+macro generic "<esc>1" ":set from=root@memory-yancy.com"
+macro generic "<esc>2" ":set from=memory.yancy@gmail.com"
+
+# Color setting
+color status brightwhite black
+
+# Bind keys like vim style, refer to: https://github.com/kulong0105/os-config/blob/master/mutt/.muttrc
+bind pager gg top
+bind pager G bottom
+bind pager j next-line
+bind pager k previous-line
+bind pager \cf next-page
+bind pager \cb previous-page
+bind pager \cj next-entry
+bind pager \ck previous-entry
+bind index gg first-entry
+bind index G last-entry
+bind index \cf next-page
+bind index \cb previous-page
+

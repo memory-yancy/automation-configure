@@ -1,0 +1,17 @@
+# Use tmux's multi-window to automate run different tasks at a time executing process.
+# NOTES: below following command must exists, or window cann't be created. Or, you can
+# use null command to replace it.
+
+# window-1 run proxy(such as: ss)
+tmux new-window -a -n proxy ""
+
+tmux new-window -a -n mail "mutt"
+# window-3 run monitor OS perf
+tmux new-window -a -n perf ""
+
+tmux new-window -a -n fileBrowser "nnn -d"
+# window-5 is ready to use tig command browser git project
+tmux new-window -a -n gitBrowser ""
+
+tmux new-window -a -n Python3 "python2"
+tmux new-window -a -n Python2 "python3"
