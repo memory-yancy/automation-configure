@@ -1,0 +1,8 @@
+asciinema
+cheat
+glances
+virtualenv
+mycli
+httpie
+trypackage
+shadowsocks
