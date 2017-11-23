@@ -1,0 +1,4 @@
+# The pound-sign (#) is used as a comment character
+
+wps http://kdl1.cache.wps.com/ksodl/download/linux/a21//wps-office-10.1.0.5707-1.a21.x86_64.rpm
+nnn https://github.com/jarun/nnn/releases/download/v1.5/nnn-1.5-1.el7.3.centos.x86_64.rpm
