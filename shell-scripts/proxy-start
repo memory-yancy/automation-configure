@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Description: use proxy tool or VPN(ss + privoxy) in command line mode or use browser(Chrome, Firefox, etc.)
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        echo "ERROR: please install "$cmd" relevant package or tool."
+        return 1
+    }
+}
+
+[[ -d "/etc/privoxy" && -f "/etc/privoxy/config" ]] || {
+    echo "ERROR: please install privoxy and then configure privoxy."
+    exit 1
+}
+
+[[ -s "/etc/shadowsocks.json" ]] || {
+    echo "ERROR: cannot find valid shadowsocks.json in /etc, please check it."
+    exit 1
+}
+
+check_command "sslocal" || exit
+
+[[ $(id -u) -eq 0 ]] || {
+    echo "ERROR: You need to be root to run it."
+    exit 1
+}
+
+check_command sudo || exit
+
+sudo sslocal -c /etc/shadowsocks.json &
+exit_code="$?"
+
+sleep 5
+
+if [[ "$exit_code" -eq 0 ]]; then
+    sudo privoxy /etc/privoxy/config
+else
+    echo "ERROR: load shadowsocks.json config file faild in sslocal."
+    exit 1
+fi
