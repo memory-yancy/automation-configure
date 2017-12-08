@@ -35,6 +35,8 @@ exit_code="$?"
 
 sleep 5
 
+# Privoxy configuration can refer to below followings in shadowsocks.
+# https://gist.github.com/Alexniver/9a4f1791fe4305b0750a, http://www.mokeedev.com/2014/07/23/syncandroidsource/
 if [[ "$exit_code" -eq 0 ]]; then
     sudo privoxy /etc/privoxy/config
 else
