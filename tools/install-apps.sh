@@ -49,14 +49,6 @@ check_command()
     }
 }
 
-have_sudo_right()
-{
-    sudo -v &> /dev/null || {
-        log_error "$USER not in sudo group."
-        return 1
-    }
-}
-
 is_blank()
 {
     local type="$1"
@@ -80,14 +72,14 @@ debian_install()
 
         if wget -c "$line" -o /dev/null -P "$TEMP_DIRS"; then
             log_info "installing extra software packages $pkg_name ..."
-            sudo dpkg --install "$TEMP_DIRS/$pkg_name" > /dev/null || {
+            dpkg --install "$TEMP_DIRS/$pkg_name" > /dev/null || {
                 # apt should try to resolve broken dependencies and no need to apt update again
-                sudo apt-get install -f -y > /dev/null || {
+                apt-get install -f -y > /dev/null || {
                     log_error "auto fix broken dependencies failed in $pkg_name"
                     return 1
                 }
 
-                sudo dpkg --install "$TEMP_DIRS/$pkg_name" > /dev/null || {
+                dpkg --install "$TEMP_DIRS/$pkg_name" > /dev/null || {
                     log_error "please resove dependencies manually and then reinstall $pkg_name again."
                     return 1
                 }
@@ -104,27 +96,27 @@ debian_install()
 debian_install_apps()
 {
     log_info "update software mirrors and upgrade some softwares ..."
-    sudo apt-get update > /dev/null && sudo apt-get upgrade -y > /dev/null
+    apt-get update > /dev/null && apt-get upgrade -y > /dev/null
 
     for tool_name in $DEBIAN_TOOLS; do
         log_info "will install $tool_name software ..."
 
-        sudo apt-get install -y "$tool_name" > /dev/null || {
+        apt-get install -y "$tool_name" > /dev/null || {
             # apt should fix broken dependency and try again
-            sudo apt-get install -f -y > /dev/null || {
+            apt-get install -f -y > /dev/null || {
                 log_error "apt cannot fix broken dependency in $tool_name, please check it."
                 return 1
             }
 
-            sudo apt-get install -y "$tool_name" > /dev/null || {
+            apt-get install -y "$tool_name" > /dev/null || {
                 log_error "apt-get can not install $tool_name software normally and please check error manually."
-                sudo rm -rf /var/lib/apt/lists/*.deb
+                rm -rf /var/lib/apt/lists/*.deb
                 return 1
             }
         }
     done
 
-    sudo rm -rf /var/lib/apt/lists/*.deb
+    rm -rf /var/lib/apt/lists/*.deb
 
     return 0
 }
@@ -143,11 +135,11 @@ centos_install()
             pkgs_name=$(basename "$line")
 			log_info "installing extra software packages $pkg_name ..."
 
-            sudo rpm --install "$TEMP_DIRS/$pkgs_name" > /dev/null || {
+            rpm --install "$TEMP_DIRS/$pkgs_name" > /dev/null || {
                 # CentOS resolves broken dependencies automatically some trouble:
-                # sudo yum install -y $(yum deplist $pkgs_name | grep "provider" | awk '{print $2}' | sort -u)
+                # yum install -y $(yum deplist $pkgs_name | grep "provider" | awk '{print $2}' | sort -u)
                 # A good idea: https://stackoverflow.com/questions/13876875/how-to-make-rpm-auto-install-dependencies
-                sudo yum --nogpgcheck localinstall "$TEMP_DIRS/$pkgs_name" -y > /dev/null || {
+                yum --nogpgcheck localinstall "$TEMP_DIRS/$pkgs_name" -y > /dev/null || {
                     log_error "please resove dependencies manually and then reinstall $pkg_name"
                     return 1
                 }
@@ -166,22 +158,22 @@ centos_install_apps()
     local repo_files="$1"
 
     log_info "adding more software repos for CentOS."
-    sudo cp -f $repo_files/* /etc/yum.repos.d || return
+    cp -f $repo_files/* /etc/yum.repos.d || return
 
     log_info "building metadata for all enabled yum repos."
-    sudo yum makecache fast > /dev/null || return
+    yum makecache fast > /dev/null || return
 
     # First install epel-release.noarch to get more package from repo
     log_info "installing epel-release.noarch ..."
-    sudo yum install -y epel-release.noarch > /dev/null || return
+    yum install -y epel-release.noarch > /dev/null || return
 
     log_info "installing Development Tools component, please hold on a moment ..."
-    sudo yum groups install "Development Tools" -y > /dev/null || return
+    yum groups install "Development Tools" -y > /dev/null || return
 
     for tool_name in $CENTOS_TOOLS; do
         log_info "will install $tool_name software ..."
 
-        sudo yum install -y "$tool_name" > /dev/null || {
+        yum install -y "$tool_name" > /dev/null || {
             # Maybe yum cann't auto-resolve broken dependency like Debian apt
             log_error "yum can not install software normally and please check error manually."
             return 1
@@ -218,11 +210,10 @@ done
 	exit 1
 }
 
-if [[ $(id -u) -ne 0 ]]; then
-	check_command sudo && have_sudo_right || exit
-else
-	check_command sudo || exit
-fi
+[[ $(id -u) -eq 0 ]] || {
+    log_error "please use root privilege to run it again."
+    exit 1
+}
 
 check_command wget || exit
 

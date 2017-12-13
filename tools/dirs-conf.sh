@@ -2,8 +2,8 @@
 
 config_dirs()
 {
-    [[ -d "${HOME}/chenyang.yan" && -d "${HOME}/github" && -d "${HOME}/test" ]] || {
-        mkdir -p "${HOME}/chenyang.yan" "${HOME}/github" "${HOME}/test" || return
+    [[ -d "${HOME}/repo" && -d "${HOME}/github" && -d "${HOME}/test" ]] || {
+        mkdir -p "${HOME}/repo" "${HOME}/github" "${HOME}/test" || return
     }
 
     local downloads
@@ -20,7 +20,7 @@ config_dirs()
         mkdir -p "${pictures}/screenshots" || return
     }
 
-    echo "INFO: created ${HOME}/chenyang.yan ${HOME}/github ${HOME}/test ${downloads}/apps-source ${pictures}/screenshots" >&2
+    echo "INFO: created ${HOME}/repo ${HOME}/github ${HOME}/test ${downloads}/apps-source ${pictures}/screenshots" >&2
 }
 
 [[ "$HOME" ]] || {
