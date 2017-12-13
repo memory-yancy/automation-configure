@@ -6,6 +6,11 @@ command -v docker > /dev/null || {
     exit 1
 }
 
+if ! docker info &> /dev/null; then
+    echo "ERROR: got permission denied while using docker, please check it."
+    exit 1
+fi
+
 image_commit=$(docker images | grep -w "none" | awk '{print $3}')
 
 if [[ -z "$image_commit" ]]; then
