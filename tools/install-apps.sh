@@ -13,14 +13,14 @@ log_error()
 }
 
 # Installing software lists from system software mirror source
-DEBIAN_TOOLS="curl make gcc g++ build-essential python-dev python-pip vim git-gui ssh chromium synaptic tig \
+DEBIAN_TOOLS="curl make gcc g++ build-essential python-dev python-pip vim git-cola ssh chromium synaptic tig \
 python3 python3-pip python3-dev inxi tmux msmtp mutt irssi virtualbox unzip npm nodejs fcitx fcitx-rime lynx sysstat \
-axel"
+axel rubygems ruby-dev"
 
-CENTOS_TOOLS="ca-certificates.noarch yum-axelget.noarch git-email.noarch git-gui.noarch vim-enhanced.x86_64 chromium.x86_64 \
+CENTOS_TOOLS="ca-certificates.noarch yum-axelget.noarch git-email.noarch git-cola.noarch vim-enhanced.x86_64 chromium.x86_64 \
 python34.x86_64 python34-pip.noarch python34-devel.x86_64 tig.x86_64 cmake.x86_64 axel.x86_64 \
 python2-pip.noarch python-devel.x86_64 inxi.noarch tmux.x86_64 msmtp.x86_64 mutt.x86_64 irssi.x86_64 unzip.x86_64 \
-nodejs.x86_64 lynx.x86_64 centos-release-scl devtoolset-3-toolchain"
+nodejs.x86_64 lynx.x86_64 centos-release-scl.noarch devtoolset-3-toolchain.x86_64 rubygems.noarch ruby-devel.x86_64"
 
 usage()
 {
