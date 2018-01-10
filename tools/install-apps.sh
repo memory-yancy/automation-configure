@@ -15,12 +15,14 @@ log_error()
 # Installing software lists from system software mirror source
 DEBIAN_TOOLS="curl make gcc g++ build-essential python-dev python-pip vim git-cola ssh chromium synaptic tig \
 python3 python3-pip python3-dev inxi tmux msmtp mutt irssi virtualbox unzip npm nodejs fcitx fcitx-rime lynx sysstat \
-axel rubygems ruby-dev"
+axel rubygems ruby-dev privoxy wget"
 
 CENTOS_TOOLS="ca-certificates.noarch yum-axelget.noarch git-email.noarch git-cola.noarch vim-enhanced.x86_64 chromium.x86_64 \
-python34.x86_64 python34-pip.noarch python34-devel.x86_64 tig.x86_64 cmake.x86_64 axel.x86_64 \
+python34.x86_64 python34-pip.noarch python34-devel.x86_64 tig.x86_64 cmake.x86_64 axel.x86_64 lshw.x86_64 wget.x86_64 \
 python2-pip.noarch python-devel.x86_64 inxi.noarch tmux.x86_64 msmtp.x86_64 mutt.x86_64 irssi.x86_64 unzip.x86_64 \
-nodejs.x86_64 lynx.x86_64 centos-release-scl.noarch devtoolset-3-toolchain.x86_64 rubygems.noarch ruby-devel.x86_64"
+nodejs.x86_64 lynx.x86_64 centos-release-scl.noarch devtoolset-3-toolchain.x86_64 rubygems.noarch ruby-devel.x86_64 \
+privoxy.x86_64 docker-ce.x86_64 google-chrome-stable.x86_64 vivaldi-stable.x86_64 virt-manager.noarch libvirt.x86_64 \
+qemu-kvm.x86_64 virt-install.noarch virt-viewer.x86_64 VirtualBox-5.0.x86_64"
 
 usage()
 {
@@ -188,6 +190,16 @@ clean_tmp()
 	rm -rf "$TEMP_DIRS"
 }
 
+pip_module()
+{
+    local requirements="$1"
+
+    pip3 install --index-url=https://pypi.doubanio.com/simple/ -r "$requirements" &> /dev/null || {
+        log_error "pip install third party modules failed, please check it."
+        return 1
+    }
+}
+
 while getopts "t:h" opt; do
     case "$opt" in
         t)  type="$OPTARG"; ;;
@@ -215,8 +227,6 @@ done
     exit 1
 }
 
-check_command wget || exit
-
 if [[ "$type" = "debian" ]]; then
     [[ -f "/usr/lib/apt/methods/https" ]] || {
         log_error "please install apt-transport-https package mannually."
@@ -226,6 +236,17 @@ fi
 
 cur_dir=$(cd $(dirname "$0"); pwd)
 apps_dirs="$(dirname $cur_dir)/third-party"
+python_packages="$(dirname $cur_dir)/requirements.txt"
+
+[[ -d "$apps_dirs" ]] || {
+    log_error "$apps_dirs isn't a directory."
+    exit 1
+}
+
+[[ -s "$python_packages" ]] || {
+    log_error "cannot find valid contens in $python_packages"
+    exit 1
+}
 
 trap "clean_tmp" EXIT
 TEMP_DIRS=$(mktemp -d)
@@ -243,5 +264,7 @@ elif [[ "$type" = "centos" ]]; then
 	centos_install_apps "${apps_dirs}/CentOS" || exit
 	centos_install "$urls" || exit
 fi
+
+pip_module "$python_packages" || exit
 
 log_info "Congratulations! All softwares have finished installing."
