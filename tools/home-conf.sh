@@ -59,12 +59,12 @@ user_conf()
 
 	case "$name" in
 		debian)
-			cp -rf $conf_files/* "$HOME"
-			cp -f "$extra_conf/bash_aliases.debian" "${HOME}/.bash_aliases"
+			cp -urf $conf_files/* "$HOME"
+			cp -uf $extra_conf/Debian/* "$HOME"
 		;;
 		centos)
-			cp -rf $conf_files/* "$HOME"
-			cp -f "$extra_conf/bash_aliases.centos" "${HOME}/.bash_aliases"
+			cp -ruf $conf_files/* "$HOME"
+			cp -uf $extra_conf/CentOS/* "$HOME"
 		;;
 	esac
 
@@ -104,6 +104,9 @@ check_os > /dev/null || {
     log_error "only support CentOS or Debian."
     exit 1
 }
+
+source "$(dirname $(readlink -e -v $BASH_SOURCE))/dirs-conf.sh"
+log_info "created required directories and files ..."
 
 cur_dir=$(cd $(dirname "$0"); pwd)
 conf_files="$(dirname $cur_dir)/dot-files"
