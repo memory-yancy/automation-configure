@@ -27,14 +27,15 @@ set quit = ask-yes
 # Using msmtp with mutt
 set sendmail="/usr/bin/msmtp"
 set realname = "Chenyang Yan"
-set from = "root@memory-yancy.com"
+set from = "me@memory-yancy.com"
 # Comments refer to: https://fancyseeker.github.io/2015/08/19/mutt/
 set use_from = yes
 set envelope_from = yes
 
 # Multiple accounts
-macro generic "<esc>1" ":set from=root@memory-yancy.com"
+macro generic "<esc>1" ":set from=me@memory-yancy.com"
 macro generic "<esc>2" ":set from=memory.yancy@gmail.com"
+macro generic "<esc>3" ":set from=memory_yancy@foxmail.com"
 
 # Bind keys like vim style, refer to: https://github.com/kulong0105/os-config/blob/master/mutt/.muttrc
 bind pager gg top

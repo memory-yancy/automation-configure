@@ -2,7 +2,7 @@
 
 [user]
     name =  Chenyang Yan
-    email = root@memory-yancy.com
+    email = memory.yancy@gmail.com
 [alias]
     lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
     lg2 = log --color --graph --pretty=format:'%h %ad | %s%d [%an]' --abbrev-commit --date=short
