@@ -22,7 +22,7 @@ python34.x86_64 python34-pip.noarch python34-devel.x86_64 tig.x86_64 cmake.x86_6
 python2-pip.noarch python-devel.x86_64 inxi.noarch tmux.x86_64 msmtp.x86_64 mutt.x86_64 irssi.x86_64 unzip.x86_64 \
 nodejs.x86_64 lynx.x86_64 centos-release-scl.noarch devtoolset-3-toolchain.x86_64 rubygems.noarch ruby-devel.x86_64 \
 privoxy.x86_64 docker-ce.x86_64 google-chrome-stable.x86_64 vivaldi-stable.x86_64 virt-manager.noarch libvirt.x86_64 \
-qemu-kvm.x86_64 virt-install.noarch virt-viewer.x86_64 VirtualBox-5.0.x86_64"
+qemu-kvm.x86_64 virt-install.noarch virt-viewer.x86_64 VirtualBox-5.0.x86_64 unar.x86_64"
 
 usage()
 {
@@ -162,9 +162,6 @@ centos_install_apps()
     log_info "adding more software repos for CentOS."
     cp -f $repo_files/* /etc/yum.repos.d || return
 
-    log_info "building metadata for all enabled yum repos."
-    yum makecache fast > /dev/null || return
-
     # First install epel-release.noarch to get more package from repo
     log_info "installing epel-release.noarch ..."
     yum install -y epel-release.noarch > /dev/null || return
@@ -175,7 +172,7 @@ centos_install_apps()
     for tool_name in $CENTOS_TOOLS; do
         log_info "will install $tool_name software ..."
 
-        yum install -y "$tool_name" > /dev/null || {
+        yum install -y --nogpgcheck "$tool_name" > /dev/null || {
             # Maybe yum cann't auto-resolve broken dependency like Debian apt
             log_error "yum can not install software normally and please check error manually."
             return 1

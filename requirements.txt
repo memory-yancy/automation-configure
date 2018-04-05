@@ -1,8 +1,11 @@
 asciinema
 cheat
 glances
+docker
+netifaces
 virtualenv
 mycli
 httpie
 trypackage
 shadowsocks
+pip-autoremove
