@@ -24,6 +24,10 @@ set auto_tag = yes
 set editor = "vim"
 set quit = ask-yes
 
+# "No Authenticators Available" error: install cyrus-sasl-plain package
+# https://groups.google.com/forum/#!topic/qubes-users/hL_UGJo1B9s
+# set smtp_authenticators = "gssapi:login"
+
 # Using msmtp with mutt
 set sendmail="/usr/bin/msmtp"
 set realname = "Chenyang Yan"
