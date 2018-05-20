@@ -42,7 +42,7 @@ bashrc_conf()
 export PS1="\[\e[31;1m\][\u@\[\e[31;1m\]\h \W]$\[\e[0m\] "
 export PS2="... "
 
-export PATH="\$PATH:/usr/local/miniconda3/bin"
+export PATH="$HOME/.cargo/bin:\$PATH"
 
 # Proxy/VPN setting in command line mode.
 # export http_proxy="http://127.0.0.1:8118"
