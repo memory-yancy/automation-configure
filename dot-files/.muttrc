@@ -23,6 +23,8 @@ set sort_aux = 'reverse-last-date-received'
 set auto_tag = yes
 set editor = "vim"
 set quit = ask-yes
+# https://unix.stackexchange.com/questions/43250/how-can-i-make-mutt-show-date-field-of-mail-on-the-index-screen
+set index_format="%4C %Z %D %-15.15L %s"
 
 # "No Authenticators Available" error: install cyrus-sasl-plain package
 # https://groups.google.com/forum/#!topic/qubes-users/hL_UGJo1B9s

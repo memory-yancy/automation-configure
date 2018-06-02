@@ -43,6 +43,7 @@ export PS1="\[\e[31;1m\][\u@\[\e[31;1m\]\h \W]$\[\e[0m\] "
 export PS2="... "
 
 export PATH="$HOME/.cargo/bin:\$PATH"
+export HISTCONTROL="ignoredups:erasedups"
 
 # Proxy/VPN setting in command line mode.
 # export http_proxy="http://127.0.0.1:8118"
