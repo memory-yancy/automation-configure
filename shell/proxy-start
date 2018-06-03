@@ -1,43 +1,62 @@
-#!/usr/bin/env bash
-# Description: use proxy tool or VPN(ss + privoxy) in command line mode or use browser(Chrome, Firefox, etc.)
+#!/bin/bash
 
-check_command()
-{
-    local cmd="$1"
+"""true"
+command -v python >/dev/null 2>&1 && exec python "$0" "$@"
+printf "[$(date '+%F %T.%3N') ERROR]: not found python in $PATH\n"
+exit 1
+"""
+import os, sys, threading, pathlib, subprocess, argparse
+from shutil import which
 
-    command -v "$cmd" > /dev/null || {
-        echo "ERROR: please install "$cmd" relevant package or tool."
-        return 1
-    }
+# Hack argparse.HelpFormatter for current human machine
+os.environ['COLUMNS'] = str(300)
+
+SSLOCAL_CONFIG = 'config.json'
+PRIVOXY_CONFIG = '/etc/privoxy/config'
+
+def run_program(cmd):
+    print('running [%r]' % ' '.join(cmd))
+    subprocess.call(' '.join(cmd), stderr=sys.stderr, stdout=sys.stderr, executable='/bin/bash', shell=True)
+
+HELP = '''\n
+Not found required tools or configuration to usage.
+In order to utilize tunnel proxy with sslocal and privoxy, you should(e.g.: CentOS):
+
+* installing sslocal(maybe libsodium-devel package required): pip install https://github.com/shadowsocks/shadowsocks/archive/master.zip -U
+* installing privoxy: yum install privoxy
+
+* setting config.json(JSON format) file for sslocal, default value: %(SSLOCAL_CONFIG)s, refer to: https://github.com/RockerFlower/shadowsocks/blob/master/debian/config.json
+* setting config file for privoxy, default value: %(PRIVOXY_CONFIG)s
+''' % {'SSLOCAL_CONFIG': SSLOCAL_CONFIG, 'PRIVOXY_CONFIG': PRIVOXY_CONFIG}
+
+parser = argparse.ArgumentParser(add_help=True, description='sslocal + privoxy tools in command line')
+parser.add_argument('--sslocal-config', type=lambda foo: pathlib.Path(foo), default=SSLOCAL_CONFIG,
+                    help='sslocal configfile, references: https://github.com/RockerFlower/shadowsocks/blob/master/debian/config.json')
+parser.add_argument('--privoxy-config', type=lambda foo: pathlib.Path(foo), default=PRIVOXY_CONFIG,
+                    help='privoxy configfile, references: https://gist.github.com/Alexniver/9a4f1791fe4305b0750a')
+parser.add_argument('-v', '--version', action='version', version='0.1.0')
+ns = parser.parse_args()
+
+if not (ns.sslocal_config.exists() and ns.privoxy_config.exists()):
+    print(parser.format_usage(), end='')
+    parser.exit(1, message=HELP)
+
+SSLOCAL_CMD, PRIVOXY_CMD = which('sslocal'), which('privoxy')
+if SSLOCAL_CMD is None or PRIVOXY_CMD is None:
+    raise FileNotFoundError(HELP)
+
+running_process = {
+    'sslocal-process': [SSLOCAL_CMD, '-c', str(ns.sslocal_config), '-v'],
+    'privoxy-process': [PRIVOXY_CMD, '--no-daemon', '--pidfile', '/tmp/privoxy.pid', str(ns.privoxy_config)]
 }
 
-[[ -d "/etc/privoxy" && -f "/etc/privoxy/config" ]] || {
-    echo "ERROR: please install privoxy and then configure privoxy."
-    exit 1
-}
+for key, value in running_process.items():
+    t = threading.Thread(target=run_program, args=[value], name=key, daemon=True)
+    t.start()
 
-[[ -s "/etc/shadowsocks.json" ]] || {
-    echo "ERROR: cannot find valid shadowsocks.json in /etc, please check it."
-    exit 1
-}
-
-check_command "sslocal" || exit
-
-[[ $(id -u) -eq 0 ]] || {
-    echo "ERROR: You need to be root to run it."
-    exit 1
-}
-
-sslocal -c /etc/shadowsocks.json &
-exit_code="$?"
-
-sleep 5
-
-# Privoxy configuration can refer to below followings in shadowsocks.
-# https://gist.github.com/Alexniver/9a4f1791fe4305b0750a, http://www.mokeedev.com/2014/07/23/syncandroidsource/
-if [[ "$exit_code" -eq 0 ]]; then
-    privoxy /etc/privoxy/config
-else
-    echo "ERROR: load shadowsocks.json config file faild in sslocal."
-    exit 1
-fi
+main_thread = threading.main_thread()
+for t in threading.enumerate():
+    if t is main_thread:
+        continue
+    print('joining process %s\n' % t.getName())
+    t.join()
