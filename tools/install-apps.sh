@@ -26,7 +26,7 @@ qemu-kvm.x86_64 virt-install.noarch virt-viewer.x86_64 VirtualBox-5.0.x86_64 una
 
 usage()
 {
-	cat >&2 <<-EOF
+    cat >&2 <<-EOF
 Usage:
     $0 <-t centos|debian>
 
@@ -38,7 +38,7 @@ Examples:
     $0 -t debian
 
 EOF
-	exit 1
+    exit 1
 }
 
 check_command()
@@ -56,7 +56,7 @@ is_blank()
     local type="$1"
     local contents=$(grep -v -e "^#" -e "^$" "${apps_dirs}/${type}-third-apps.txt")
 
-	[[ "$contents" ]] || {
+    [[ "$contents" ]] || {
         log_error "${type}-third-apps.txt file has no any contents and please check it."
         return 1
     }
@@ -135,7 +135,7 @@ centos_install()
 
         if wget -c "$line" -o /dev/null -P "$TEMP_DIRS"; then
             pkgs_name=$(basename "$line")
-			log_info "installing extra software packages $pkg_name ..."
+            log_info "installing extra software packages $pkg_name ..."
 
             rpm --install "$TEMP_DIRS/$pkgs_name" > /dev/null || {
                 # CentOS resolves broken dependencies automatically some trouble:
@@ -184,7 +184,7 @@ centos_install_apps()
 
 clean_tmp()
 {
-	rm -rf "$TEMP_DIRS"
+    rm -rf "$TEMP_DIRS"
 }
 
 pip_module()
@@ -215,8 +215,8 @@ done
 }
 
 [[ "$type" =~ ^(debian|centos)$ ]] || {
-	log_error "only support debian or centos options."
-	exit 1
+    log_error "only support debian or centos options."
+    exit 1
 }
 
 [[ $(id -u) -eq 0 ]] || {
@@ -249,17 +249,17 @@ trap "clean_tmp" EXIT
 TEMP_DIRS=$(mktemp -d)
 
 if [[ "$type" = "debian" ]]; then
-	is_blank "$type" || exit
-	urls=$(grep -v -e "^#" -e "^$" "${apps_dirs}/$type-third-apps.txt" | awk '{print $NF}')
+    is_blank "$type" || exit
+    urls=$(grep -v -e "^#" -e "^$" "${apps_dirs}/$type-third-apps.txt" | awk '{print $NF}')
 
-	debian_install_apps || exit
-	debian_install "$urls" || exit
+    debian_install_apps || exit
+    debian_install "$urls" || exit
 elif [[ "$type" = "centos" ]]; then
-	is_blank "$type" || exit
-	urls=$(grep -v -e "^#" -e "^$" "${apps_dirs}/$type-third-apps.txt" | awk '{print $NF}')
+    is_blank "$type" || exit
+    urls=$(grep -v -e "^#" -e "^$" "${apps_dirs}/$type-third-apps.txt" | awk '{print $NF}')
 
-	centos_install_apps "${apps_dirs}/CentOS" || exit
-	centos_install "$urls" || exit
+    centos_install_apps "${apps_dirs}/CentOS" || exit
+    centos_install "$urls" || exit
 fi
 
 pip_module "$python_packages" || exit
