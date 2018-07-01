@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Delete Docker image according to your requirement.
+
+Usage:
+    $0 <-N | -n line_number | -w keyword>
+
+Option:
+    -N:                 delete all untagged images.
+    -n line_number:     delete how many images in the first part of "docker images", data-type is digit.
+    -w keyword:         exact keyword to filter image in "docker images".
+
+Example:
+    $0 -N
+    $0 -n 2
+    $0 -w nvidia/cuda
+
+EOF
+    exit
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;32mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd package mannually."
+        return 1
+    }
+}
+
+check_docker()
+{
+    check_command "docker" || return
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi
+}
+
+check_is_digit()
+{
+    [[ "$LINE_NUMBER" =~ [[:digit:]]{1,3} ]] || {
+        log_error "$LINE_NUMBER isn't a valid digit."
+        return 1
+    }
+}
+
+delete_image_none()
+{
+    if ! docker rmi -f $(docker images --filter "dangling=true" -q) 2> /dev/null; then
+        log_warn "no appropriate 'none' docker images to delete."
+    fi
+}
+
+delete_image()
+{
+    local image_name
+
+    if [[ "$LINE_NUMBER" ]]; then
+        log_info "deleting the first [ $LINE_NUMBER ] Docker image."
+        docker images --format "{{.ID}}" | head -n "$LINE_NUMBER" | xargs -n1 -P $(nproc) docker rmi -f
+    elif [[ "$KEYWORD" ]]; then
+        log_info "deleting the [ $KEYWORD ] related Docker image."
+
+        image_name=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -w "$KEYWORD")
+        if [[ -z "$image_name" ]]; then
+            log_warn "cannot find $KEYWORD related image to delete."
+        else
+            echo "$image_name" | xargs -n1 -P $(nproc) docker rmi -f
+        fi
+    fi
+}
+
+while getopts "Nn:w:h" option; do
+    case "$option" in
+        N)  NONE_IMAGE="Y"; ;;
+        n)  LINE_NUMBER="$OPTARG";  ;;
+        w)  KEYWORD="$OPTARG";  ;;
+        h | ?)  usage;  ;;
+    esac
+done
+
+[[ "$NONE_IMAGE" || "$LINE_NUMBER" || "$KEYWORD" ]] || {
+    log_error "-N or -n or -w option is required."
+    usage
+}
+if [[ "$LINE_NUMBER" && "$KEYWORD" ]]; then
+    log_error "-n and -w options are mutually exclusive."
+    usage
+fi
+[[ -z "$LINE_NUMBER" ]] || {
+    check_is_digit || exit
+}
+check_docker || exit
+
+if [[ "$LINE_NUMBER" || "$KEYWORD" ]]; then
+    delete_image
+elif [[ "$NONE_IMAGE" ]]; then
+    delete_image_none
+fi

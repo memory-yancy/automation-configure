@@ -1,0 +1,127 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Push Docker image to internal Harbor registry.
+
+Usage:
+    $0 <-w image_keyword> [-U harbor_username] [-P harbor_password] <-i harbor_ip>
+
+Option:
+    -w image_keyword:       exact keyword to filter image in "docker images".
+    -U harbor_username:     username in Harbor, defalut value is admin.
+    -P harbor_password:     password in Harbor, defalut value is Harbor12345.
+    -i harbor_ip:           IP in Harbor, IPv4.
+
+Example:
+    $0 -w skyintelligent -i 192.168.60.23
+    $0 -w skyintelligent -i 192.168.60.23 -U admin -P Harbor12345
+EOF
+    exit
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;32mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd package mannually."
+        return 1
+    }
+}
+
+check_docker()
+{
+    check_command "docker" || return
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi
+}
+
+check_ip()
+{
+    [[ "$IP_ADDR" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+        log_error "$IP_ADDR isn't valid IP address, please check it."
+        return 1
+    }
+    curl -L -s -o /dev/null -m 30 "$IP_ADDR" 2> /dev/null || {
+        log_error "harbor $IP_ADDR seems down."
+        return 1
+    }
+}
+
+check_auth()
+{
+    if ! docker info --format '{{.RegistryConfig.IndexConfigs}}' | grep -q -w "$IP_ADDR"; then
+        log_error "cannot find $IP_ADDR registry in docker config."
+        return 1
+    fi
+
+    log_info "checking [ $USERNAME / $PASSWORD ] auth in docker."
+    docker login "$IP_ADDR" --username "$USERNAME" --password "$PASSWORD" &> /dev/null || {
+        log_error "login failed, check your username or password."
+        return 1
+    }
+}
+
+push_image_to_harbor()
+{
+    local image_name
+
+    log_info "push [ $KEYWORD ] related image to $IP_ADDR"
+    image_name=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$IP_ADDR" | grep -w "$KEYWORD")
+    if [[ "$image_name" ]]; then
+        echo "$image_name" | xargs -n1 -P $(nproc) docker push || {
+            log_error "push [ $KEYWORD ] related image failed."
+            return 1
+    }
+    else
+        log_warn "cannot find [ $KEYWORD ] related image to push."
+        return 1
+    fi
+}
+
+while getopts "w:U:P:i:h" option; do
+    case "$option" in
+        w)  KEYWORD="$OPTARG";  ;;
+        U)  USERNAME="$OPTARG"; ;;
+        P)  PASSWORD="$OPTARG"; ;;
+        i)  IP_ADDR="$OPTARG";  ;;
+        h | ?)  usage;  ;;
+    esac
+done
+
+[[ "$KEYWORD" && "$IP_ADDR" ]] || {
+    log_error "-w and -i option are required."
+    usage
+}
+
+[[ "$USERNAME" ]] || USERNAME="admin"
+[[ "$PASSWORD" ]] || PASSWORD="Harbor12345"
+
+check_ip || exit
+check_docker || exit
+check_auth || exit
+push_image_to_harbor || exit

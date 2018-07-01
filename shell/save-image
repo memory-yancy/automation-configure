@@ -1,0 +1,119 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Save Docker image to local using tarball format.
+
+Usage:
+    $0 <-o output_dir> <-n line_number | -w keyword>
+
+Option:
+    -o output_dir:      save image's directory.
+    -n line_number:     save how many images in the first part of "docker images --format '{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}}', data-type is integer.
+    -w keyword:         exact keyword to filter image in "docker images --format '{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}}'.
+
+Examples:
+    $0 -o /data/docker/image -n 2
+    $0 -o /data/docker/image -w skydiscovery/python
+
+EOF
+    exit
+}
+
+log_info()
+{
+    echo -e "\e[1;33mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd and try again."
+        return 1
+    }
+}
+
+check_docker()
+{
+    check_command "docker" || return
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi  
+}
+
+save_image()
+{
+    local image_info
+    local saved_name
+
+    if [[ "$LINE_NUMBER" ]]; then
+        image_info=$(docker images --format "{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}}" | head -n "$LINE_NUMBER")
+    elif [[ "$KEYWORD" ]]; then
+        image_info=$(docker images --format "{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}}" | grep -w "$KEYWORD")
+    fi
+
+    [[ "$image_info" ]] || {
+        log_error "not find related Docker image to save."
+        return 1
+    }
+    while read -r image_id image_fullname image_size; do
+        saved_name=$(echo "$image_fullname" | tr "[/:]" "-")
+
+        log_info "saving $image_fullname [$image_size] to $OUTPUT_DIR ..."
+        [[ -f "${OUTPUT_DIR}/${saved_name}.tar" ]] && {
+            log_warn "$image_fullname existed in $OUTPUT_DIR, skip it ..."
+            continue
+        }
+        docker save --output "${OUTPUT_DIR}/${saved_name}.tar" "$image_fullname" || {
+            log_error "cannot save $image_fullname Docker image."
+            return 1
+        }
+    done <<< "$image_info"
+}
+
+while getopts "o:n:w:h" option; do
+    case "$option" in
+        o)  OUTPUT_DIR="$OPTARG";   ;;
+        n)  LINE_NUMBER="$OPTARG";  ;;
+        w)  KEYWORD="$OPTARG";  ;;
+        h | ?)  usage;  ;;
+    esac
+done
+
+[[ "$OUTPUT_DIR" && ("$LINE_NUMBER" || "$KEYWORD") ]] || {
+    log_error "-o and -n or -w options are required."
+    usage
+}
+if [[ "$LINE_NUMBER" && "$KEYWORD" ]]; then
+    log_error "-n and -w options aren't used together."
+    usage
+fi
+[[ -d "$OUTPUT_DIR" ]] || {
+    log_error "$OUTPUT_DIR isn't a directory."
+    exit 1
+}
+if [[ "$LINE_NUMBER" ]]; then
+    [[ "$LINE_NUMBER" =~ [[:digit:]]{1,3} ]] || {
+        log_error "$LINE_NUMBER isn't a integer digit."
+        exit 1
+    }
+fi
+
+check_docker || exit
+save_image || exit

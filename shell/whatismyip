@@ -1,0 +1,86 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Detect your IP, containing internal IP and external IP.
+
+Usage:
+    $0 <int | ext>
+
+Sub-Command:
+    int:    get $(hostname -s) machine internal IP.
+    ext:    get $(hostname -s) machine external IP.
+
+Example:
+    $0 int
+
+EOF
+    exit
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;32mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+check_internet()
+{
+    check_command "curl" || return
+
+    log_info "checking your Internet."
+    curl -L -s -o /dev/null -m 45 www.baidu.com || {
+        log_error "cannot connect Internet, please check."
+        return 1
+    }
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd package mannually."
+        return 1
+    }
+}
+
+get_internal_ip()
+{
+    local internal_ip
+
+    check_command "ip" || return
+
+    internal_ip=$(ip route get 8.8.8.8 | awk '/8.8.8.8/ { if($7!="") { print $7 } else { print $5 } }') || {
+        log_error "cannot get internal IP from $(hostname -s)"
+        return 1
+    }
+    log_info "$(hostname -s) machine internal IP = $internal_ip"
+}
+
+get_external_ip()
+{
+    local external_ip
+
+    check_internet || return
+
+    external_ip=$(curl -L -s myip.ipip.net | awk -F"：" '{print $2, $3}') || {
+        log_error "cannot get external IP from myip.ipip.net."
+        return 1
+    }
+    log_info "$(hostname -s) machine external IP = $external_ip"
+}
+
+case "$1" in
+    int)    get_internal_ip ;;
+    ext)    get_external_ip ;;
+    *)  usage   ;;
+esac
