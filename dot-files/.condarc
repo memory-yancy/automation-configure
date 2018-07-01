@@ -1,7 +1,8 @@
 # See https://conda.io/docs/config.html for more information about this file.
 
-auto_update_conda: False
-show_channel_urls: True
 anaconda_upload: False
-always_yes: True
-
+auto_update_conda: false
+channel_priority: false
+override_channels_enabled: true
+show_channel_urls: true
+notify_outdated_conda: false

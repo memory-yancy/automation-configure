@@ -4,7 +4,7 @@
     name =  Chenyang Yan
     email = memory.yancy@gmail.com
 [alias]
-    lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+    lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit
     lg2 = log --color --graph --pretty=format:'%h %ad | %s%d [%an]' --abbrev-commit --date=short
     sw = show --pretty=raw
     sw2 = show --format=fuller --stat --patch -w -M
@@ -28,6 +28,11 @@
     default = simple
 [diff]
     renames = true
+[core]
+    editor = /usr/bin/vim
+# https://help.github.com/articles/caching-your-github-password-in-git/
+[credential]
+    helper = store
 
 #[sendemail]
 #    smtpserver = mail.sky-data.cn
