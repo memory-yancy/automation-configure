@@ -10,10 +10,10 @@ Usage:
     $0 <-w image_keyword> [-U harbor_username] [-P harbor_password] <-i harbor_ip>
 
 Option:
-    -w image_keyword:       exact keyword to filter image in "docker images".
+    -w image_keyword:       exact keyword to filter image in "docker images --format '{{.Repository}}:{{.Tag}}'" command.
     -U harbor_username:     username in Harbor, defalut value is admin.
     -P harbor_password:     password in Harbor, defalut value is Harbor12345.
-    -i harbor_ip:           IP in Harbor, IPv4.
+    -i harbor_ip:           IP in Harbor, IPv4. Or, use IP:PORT format.
 
 Example:
     $0 -w skyintelligent -i 192.168.60.23
@@ -62,10 +62,6 @@ check_docker()
 
 check_ip()
 {
-    [[ "$IP_ADDR" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-        log_error "$IP_ADDR isn't valid IP address, please check it."
-        return 1
-    }
     curl -L -s -o /dev/null -m 30 "$IP_ADDR" 2> /dev/null || {
         log_error "harbor $IP_ADDR seems down."
         return 1
@@ -74,10 +70,10 @@ check_ip()
 
 check_auth()
 {
-    if ! docker info --format '{{.RegistryConfig.IndexConfigs}}' | grep -q -w "$IP_ADDR"; then
+    docker info --format '{{.RegistryConfig.IndexConfigs}}' | grep -q -w "$IP_ADDR" || {
         log_error "cannot find $IP_ADDR registry in docker config."
         return 1
-    fi
+    }
 
     log_info "checking [ $USERNAME / $PASSWORD ] auth in docker."
     docker login "$IP_ADDR" --username "$USERNAME" --password "$PASSWORD" &> /dev/null || {
@@ -92,11 +88,12 @@ push_image_to_harbor()
 
     log_info "push [ $KEYWORD ] related image to $IP_ADDR"
     image_name=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "$IP_ADDR" | grep -w "$KEYWORD")
+
     if [[ "$image_name" ]]; then
         echo "$image_name" | xargs -n1 -P $(nproc) docker push || {
             log_error "push [ $KEYWORD ] related image failed."
             return 1
-    }
+        }
     else
         log_warn "cannot find [ $KEYWORD ] related image to push."
         return 1

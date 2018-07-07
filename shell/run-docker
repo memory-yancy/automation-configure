@@ -1,0 +1,115 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Fastly run test container to investigate some issues using specific image.
+
+Usage:
+    $0 <-i image_name> [-d mount_src_dir] [-D]
+
+Option:
+    -i image_name:      docker image name, use centos:7 similar format
+    -d mount_src_dir:   source directory for mounting to docker, default uses /home/${USER}
+    -D :                whether remove the container when it exits, default value doesn't remove
+
+Examples:
+    $0 -i centos:7.4.1708
+    $0 -i centos:7.4.1708 -d /my/data/dir
+
+    EXTRA_DOCKER_RUN_ARGS="-v /tmp:/tmp" ENABLE_PIP_MIRROR=1 $0 -i centos:7.4.1708
+EOF
+    exit
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;33mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd and try again."
+        return 1
+    }
+}
+
+check_docker()
+{
+    check_command "docker" || return
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi
+}
+
+check_image()
+{
+    log_info "checking $IMAGE_NAME docker image ..."
+
+    [[ "$IMAGE_NAME" = *":"* ]] || {
+        log_error "$IMAGE_NAME isn't valid image name, please use centos:7 similar format."
+        return 1
+    }
+    [[ $(docker images --format '{{.Repository}}:{{.Tag}}' "$IMAGE_NAME") ]] || {
+        log_warn "cannot find $IMAGE_NAME in local docker image, pulling image."
+        docker pull "$IMAGE_NAME" 2> /dev/null || {
+            log_error "cannot find $IMAGE_NAME to use, check it please."
+            return 1
+        }
+    }
+}
+
+docker_run()
+{
+    log_info "runing $IMAGE_NAME image to use ..."
+    local common_args="-ti -v ${MOUNT_DIR}:/data-${USER} --hostname container -P --cap-add sys_admin --workdir /home"
+
+    [[ "$ENABLE_PIP_MIRROR" ]] && common_args+=" --env PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/"
+    [[ "$EXTRA_DOCKER_RUN_ARGS" ]] && common_args+=" $EXTRA_DOCKER_RUN_ARGS"
+    if [[ "$IS_DELETE" ]]; then
+        docker run --rm $common_args "$IMAGE_NAME" /bin/bash
+    else
+        docker run $common_args "$IMAGE_NAME" /bin/bash
+    fi
+}
+
+while getopts "i:d:Dh" option; do
+    case "$option" in
+        i)  IMAGE_NAME="$OPTARG";   ;;
+        d)  MOUNT_DIR="$OPTARG";  ;;
+        D)  IS_DELETE="Y";  ;;
+        h | ?)  usage;  ;;
+    esac
+done
+
+[[ "$IMAGE_NAME" ]] || {
+    log_error "-i option are required."
+    usage
+}
+
+[[ "$MOUNT_DIR" ]] || MOUNT_DIR="/home/${USER}"
+# docker mount needs absolute path.
+MOUNT_DIR=$(realpath -m "$MOUNT_DIR")
+
+check_docker || exit
+check_image || exit
+docker_run

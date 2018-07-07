@@ -1,0 +1,131 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Get docker container related info, such as: IP, mounted volume, etc.
+
+Usage:
+    $0 <-i container_id> <net | volume>
+
+Sub-commands:
+    net:                      get container IP Address.
+    volume:                   get container mounted volume location.
+
+Options:
+    -i container_id:        container ID using docker ps to get.
+
+Examples:
+    $0 -i bc78aec2e8d5 net
+
+EOF
+    exit
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;33mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd and try again."
+        return 1
+    }
+}
+
+check_docker()
+{
+    check_command "docker" || return
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi
+}
+
+check_container_exist()
+{
+    log_info "getting ID=$CONTAINER_ID realted info ..."
+
+    local container_id
+    docker ps -a --format '{{.ID}}' | grep -q $(expr substr "$CONTAINER_ID" 1 12) || {
+        log_error "cannot find $CONTAINER_ID container in current docker env"
+        return 1
+    }
+}
+
+get_net_info()
+{
+    check_container_exist || return
+
+    local network_mode
+    local ip_info
+    local hostname_info
+    network_mode=$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$CONTAINER_ID")
+    hostname_info=$(docker inspect --format '{{.Config.Hostname}}' "$CONTAINER_ID")
+    if [[ "$network_mode" = "host" ]]; then
+        ip_info=$(ip route get 8.8.8.8 | awk '/8.8.8.8/ { if($7!="") { print $7 } else { print $5 } }')
+    elif [[ "$network_mode" = "default" || "$network_mode" = "bridge" ]]; then
+        ip_info=$(docker inspect --format '{{.NetworkSettings.IPAddress}}' "$CONTAINER_ID")
+    fi
+
+    log_info "IP Address = $ip_info , Network Mode = $network_mode , Hostname = $hostname_info"
+}
+
+get_volume_info()
+{
+    check_container_exist || return
+
+    local src_mount
+    local dest_mount
+    local permission_setting
+
+    [[ $(docker inspect --format '{{len .Mounts}}' "$CONTAINER_ID") -eq 0 ]] && {
+        log_info "not mount anything to container inside"
+        return 0
+    }
+    src_mount=$(docker inspect --format '{{(index .Mounts 0).Source}}' "$CONTAINER_ID")
+    dest_mount=$(docker inspect --format '{{(index .Mounts 0).Destination}}' "$CONTAINER_ID")
+    permission_setting=$(docker inspect --format '{{(index .Mounts 0).RW}}' "$CONTAINER_ID")
+
+    log_info "Source dir = $src_mount, Destination dir = $dest_mount, File Mode(RW) = $permission_setting"
+}
+
+while getopts "i:h" option; do
+    case "$option" in
+        i)  CONTAINER_ID="$OPTARG"; ;;
+        h | ?)  usage;  ;;
+    esac
+done
+
+[[ "$CONTAINER_ID" ]] || {
+    log_error "-i options are required."
+    usage
+}
+
+shift $(( OPTIND - 1 ))
+ACTION="$1"
+[[ "$ACTION" = "net" || "$ACTION" = "volume" ]] || {
+    log_error "only support net or volume sub-command now ..."
+    usage
+}
+
+check_docker || exit
+case "$ACTION" in
+    net)
+        get_net_info || exit ;;
+    volume)
+        get_volume_info || exit ;;
+esac

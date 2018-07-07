@@ -1,0 +1,104 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Retag Docker image batching according to your requirement, and then push to Harbor. It has two case:
+    * 192.168.20.11/library/debian:jessie -> 192.168.60.11/library/debian:jessie (update IP prefix)
+    * library/debian:jessie               -> 192.168.60.22/library/debian:jessie (add IP prefix)
+
+Usage:
+    $0 <-i target_ip> <-w keyword>
+
+Options:
+    -i target_ip:   target IP prefix.
+    -w keyword:     exact keyword to filter image in "docker images".
+
+Examples:
+    $0 -i 192.168.20.111 -w library
+
+EOF
+    exit 1
+}
+
+log_info()
+{
+    echo
+    echo -e "\e[1;33mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd and try again."
+        return 1
+    }
+}
+
+check_docker_permission()
+{
+    check_command "docker" || exit
+
+    if ! docker info &> /dev/null; then
+        log_error "got permission denied while using docker, please check it."
+        return 1
+    fi
+}
+
+retag_image()
+{
+    local docker_images
+    local matched_string
+
+    docker_images=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -w "$KEYWORD")
+    [[ "$docker_images" ]] || {
+        log_error "cannot find any [ $KEYWORD ] related docker image."
+        return 1
+    }
+
+    while read -r image_name; do
+        if [[ "$image_name" =~ (^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/(.*):(.*) ]]; then
+            log_info "from [ $image_name ] to [ ${TARGET_IP}/${image_name#*/} ] ..."
+            docker tag "$image_name" "${TARGET_IP}/${image_name#*/}" || {
+                log_warn "cannot retag $image_name, see related error."
+            }
+        else
+            # If image name doesn't start with IP, then add IP as image prefix.
+            log_info "from [ $image_name ] to [ ${TARGET_IP}/${image_name} ] ..."
+            docker tag "$image_name" "${TARGET_IP}/${image_name}" || {
+                log_warn "cannot retag $image_name, see related error."
+            }
+        fi
+    done <<< "$docker_images"
+}
+
+while getopts "i:w:h" option; do
+    case "$option" in
+        i)  TARGET_IP="$OPTARG";    ;;
+        w)  KEYWORD="$OPTARG";  ;;
+        h | ?) usage;   ;;
+    esac
+done
+
+[[ "$TARGET_IP" && "$KEYWORD" ]] || {
+    log_error "-i, -k option are required."
+    usage
+}
+
+check_docker_permission || exit
+retag_image || exit
