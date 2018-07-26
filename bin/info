@@ -1,0 +1,11 @@
+#!/bin/bash
+
+check_files_exist "${OS_CONFIG_SRC}/version" || exit
+
+if [[ -s "${OS_CONFIG_SRC}/.git/config" ]]; then
+    check_command "git" || exit
+    commit_info=$(git rev-list -n1 --format="%an %ai %h" HEAD | tail -n1)
+fi
+version_number=$(cat "${OS_CONFIG_SRC}/version")
+
+log_info "$commit_info USING V${version_number} "

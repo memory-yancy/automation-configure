@@ -30,3 +30,5 @@ alias ps2='pip2 search'
 alias ps3='pip3 search'
 alias gd='git diff'
 alias pycharm='/home/yancy/dev-tools/pycharm/bin/pycharm.sh'
+alias chromium="/usr/bin/chromium-browser --proxy-server='http://127.0.0.1:8118'"
+alias ipython="ipython --no-confirm-exit --term-title --colors LightBG --classic"

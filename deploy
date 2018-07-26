@@ -1,0 +1,231 @@
+#!/bin/bash
+
+usage()
+{
+    cat >&2 <<-EOF
+
+Usage:
+    $0 [-u] <apps | config | info>
+
+Sub-Command:
+    apps:           install some softwares from specific file.
+    config:         config user option files, such as: vim, tmux, etc.
+    info:           display version info and exit.
+
+Options:
+    -u:             whether config root user option files, default action will only config normal user.
+
+Examples:
+    $0 apps
+    $0 -u config
+
+EOF
+    exit
+}
+
+log_info()
+{
+    echo -e "\e[1;33mINFO: $* \e[0m" >&2
+}
+
+log_error()
+{
+    echo -e "\e[1;31mERROR: $* \e[0m" >&2
+}
+
+log_warn()
+{
+    echo -e "\e[1;36mWARNING: $* \e[0m" >&2
+}
+
+check_internet()
+{
+    log_info "checking your Internet ..."
+
+    check_command "curl" || return
+    curl -L -s -S -o /dev/null www.baidu.com || {
+        log_error "cannot to connect Internet, check it ..."
+        return 1
+    }
+}
+
+check_command()
+{
+    local cmd="$1"
+
+    command -v "$cmd" > /dev/null || {
+        log_error "please install $cmd command and try again ..."
+        return 1
+    }
+}
+
+check_os()
+{
+    log_info "checking OS arch and version ..."
+
+    [[ $(uname -m) = "x86_64" ]] || {
+        log_error "only support x86_64 arch, but get $(uname -m) ..."
+        return 1
+    }
+    [[ -s "/etc/os-release" ]] || {
+        log_warn "cannot find /etc/os-release file ..."
+        [[ -x "/usr/bin/yum" || -x "/usr/bin/dnf" ]] || {
+            log_error "only support centos / fedora distr. version ..."
+            return 1
+        }
+    }
+    source /etc/os-release || return
+    [[ $(echo "$ID" | tr '[:upper:]' '[:lower:]') =~ ^(centos|fedora)$ ]] || {
+        log_error "only support centos / fedora type version, but get $(echo "$ID" | tr '[:upper:]' '[:lower:]') ..."
+        return 1
+    }
+}
+
+check_files_exist()
+{
+    local files="$@"
+
+    for file in $files; do
+        [[ -s "$file" ]] || {
+            log_error "cannot find file: $file ..."
+            return 1
+        }
+    done
+}
+
+check_directory_exist()
+{
+    local directories="$@"
+
+    for directory in $directories; do
+        [[ -d "$directory" ]] || {
+            log_error "cannot find a directory: $directory ..."
+            return 1
+        }
+        [[ $(ls --hide=".*" "$directory") ]] || {
+            log_error "cannot find any non-dot files in $directory ..."
+            return 1
+        }
+    done
+}
+
+enable_start_service()
+{
+    local service_name="${1}.service"
+    log_info "enable $service_name service ..."
+
+    # In case of stale service exists, so reset default status.
+    # See https://superuser.com/questions/513159/how-to-remove-systemd-services/936976#936976
+    systemctl daemon-reload
+    systemctl reset-failed
+    systemctl list-unit-files --type=service | grep -q -w "$service_name" || {
+        log_error "cannot find $service_name service, skip it ..."
+        return 1
+    }
+
+    [[ $(systemctl is-enabled "$service_name") = "enabled" ]] || {
+        systemctl enable "$service_name" || {
+            log_error "$service_name cannot be enabled ..."
+            return 1
+        }
+    }
+    [[ $(systemctl is-active "$service_name") = "active" ]] || {
+        systemctl start "$service_name" || {
+            log_error "$service_name cannot start, see 'systemctl status $service_name -l' for more information ..."
+            return 1
+        }
+    }
+}
+
+get_value_from_inifile()
+{
+    local ini_file="$1"
+    local section_name="$2"
+    local option_name="$3"
+    local line_content
+
+    log_info "checking $section_name in $ini_file ..."
+    sed -ne 's/^\[\(.*\)\]$/\1/p' "$ini_file" | grep -x -q "$section_name" || {
+        log_error "cannot find $section_name in $ini_file ..."
+        return 1
+    }
+    if [[ "$option_name" ]]; then
+        line_content=$(sed -ne "/^\[$section_name\]/, /^\[.*\]/ { /^$option_name[ \t]*=/ p; }" "$ini_file") || {
+            log_error "cannot get $option_name from $section_name in $ini_file ..."
+            return 1
+        }
+    else
+        line_content=$(sed -ne "/^\[$section_name\]/,/^\[.*\]/ { /^[[:alnum:]]/ p; }" "$ini_file") || {
+            log_error "cannot get value from $section_name in $ini_file ..."
+            return 1
+        }
+    fi
+    [[ "${line_content#*=}" ]] || {
+        if [[ "$option_have_value" ]]; then
+            log_error "unvalid format in $option_name of $section_name in $ini_file, its value is null ..."
+        else
+            log_error "unvalid format in $section_name section, related contents value is null ..."
+        fi
+        return 1
+    }
+
+    echo "${line_content#*=}"
+}
+
+while getopts "uh" option; do
+    case "$option" in
+        u)  USE_ROOT="Y";   ;;
+        h | ?) usage;   ;;
+    esac
+done
+
+shift $(( OPTIND - 1 ))
+OS_CONFIG_SRC=$(cd $(dirname "$0") && pwd)
+
+ACTION="$1"
+[[ "$ACTION" ]] || {
+    log_error "sub-command is required ..."
+    usage
+}
+if [[ "$USE_ROOT" && "$ACTION" != "config" ]]; then
+    log_error "-u option is only used by 'config' command ..."
+    usage
+fi
+[[ "$ACTION" = "apps" || "$ACTION" = "config" || "$ACTION" = "info" ]] || {
+    log_error "only support 'apps', 'config' and 'info' sub-command now ..."
+    usage
+}
+
+check_os || exit
+
+trap "exit 1" EXIT INT
+
+export OS_CONFIG_SRC
+
+export -f log_info
+export -f log_error
+export -f log_warn
+export -f check_internet
+export -f check_command
+export -f check_files_exist
+export -f check_directory_exist
+export -f enable_start_service
+export -f get_value_from_inifile
+
+case "$ACTION" in
+    apps)
+        "${OS_CONFIG_SRC}/bin/apps" || exit
+        ;;
+    config)
+        if [[ "$USE_ROOT" ]]; then
+            "${OS_CONFIG_SRC}/bin/config" "root" || exit
+        else
+            "${OS_CONFIG_SRC}/bin/config" || exit
+        fi
+        ;;
+    info)
+        "${OS_CONFIG_SRC}/bin/info" || exit
+        ;;
+    tools)
+        "${OS_CONFIG_SRC}/bin/tools" || exit
+esac

@@ -3,9 +3,9 @@ cheat
 glances
 docker
 netifaces
-virtualenv
+pipenv
 mycli
 httpie
 trypackage
 shadowsocks
-pip-autoremove
+ipython==5.*
