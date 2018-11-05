@@ -3,9 +3,14 @@
 check_files_exist "${OS_CONFIG_SRC}/version" || exit
 
 if [[ -s "${OS_CONFIG_SRC}/.git/config" ]]; then
-    check_command "git" || exit
-    commit_info=$(git rev-list -n1 --format="%an %ai %h" HEAD | tail -n1)
+    if check_command "git" 2> /dev/null; then
+        git_revision=$(expr substr $(git rev-list -n1 HEAD) 1 7 2> /dev/null)
+    else
+        git_revision="Unknown"
+    fi
+else
+    git_revision="Unknown"
 fi
 version_number=$(cat "${OS_CONFIG_SRC}/version")
 
-log_info "$commit_info USING V${version_number} "
+log_info "Copyright (c) $(date +%Y) Chenyang Yan @ $git_revision USING V${version_number} "

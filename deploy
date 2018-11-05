@@ -5,12 +5,13 @@ usage()
     cat >&2 <<-EOF
 
 Usage:
-    $0 [-u] <apps | config | info>
+    $0 [-u] <apps | config | info | tools>
 
 Sub-Command:
     apps:           install some softwares from specific file.
     config:         config user option files, such as: vim, tmux, etc.
     info:           display version info and exit.
+    tools:          install useful tools from Internet.
 
 Options:
     -u:             whether config root user option files, default action will only config normal user.
@@ -25,16 +26,19 @@ EOF
 
 log_info()
 {
+    echo
     echo -e "\e[1;33mINFO: $* \e[0m" >&2
 }
 
 log_error()
 {
+    echo
     echo -e "\e[1;31mERROR: $* \e[0m" >&2
 }
 
 log_warn()
 {
+    echo
     echo -e "\e[1;36mWARNING: $* \e[0m" >&2
 }
 
@@ -188,11 +192,11 @@ ACTION="$1"
     usage
 }
 if [[ "$USE_ROOT" && "$ACTION" != "config" ]]; then
-    log_error "-u option is only used by 'config' command ..."
+    log_error "-u option is only used by config command ..."
     usage
 fi
-[[ "$ACTION" = "apps" || "$ACTION" = "config" || "$ACTION" = "info" ]] || {
-    log_error "only support 'apps', 'config' and 'info' sub-command now ..."
+[[ "$ACTION" = "apps" || "$ACTION" = "config" || "$ACTION" = "info" || "$ACTION" = "tools" ]] || {
+    log_error "only support apps, config, tools and info sub-command now ..."
     usage
 }
 
@@ -220,7 +224,7 @@ case "$ACTION" in
         if [[ "$USE_ROOT" ]]; then
             "${OS_CONFIG_SRC}/bin/config" "root" || exit
         else
-            "${OS_CONFIG_SRC}/bin/config" || exit
+            "${OS_CONFIG_SRC}/bin/config" "normal" || exit
         fi
         ;;
     info)

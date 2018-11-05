@@ -13,6 +13,15 @@ check_file_validate()
     }
 }
 
+check_update_repo()
+{
+    log_info "checking update repo whether enable or not"
+
+    if yum repolist enabled | grep -q "Updates"; then
+        log_warn "disable Updates repo is better in some way"
+    fi
+}
+
 rpm_install()
 {
     local third_party_file="${OS_CONFIG_SRC}/config/pkgs/pkgs_third.ini"
@@ -20,7 +29,7 @@ rpm_install()
     check_file_validate "$third_party_file" || return
 
     local line_content
-    line_content=$(get_value_from_inifile "$third_party_file" "third_party_pkgs") || return
+    line_content=$(get_value_from_inifile "$third_party_file" "third_party_pkgs" | sed '/^$/d') || return
 
     local pkgs_urls=$(echo "$line_content" | awk -F"=" '{print $NF}')
     while read -r line; do
@@ -33,7 +42,7 @@ rpm_install()
         log_info "downloading $pkg_name package from Internet ..."
         if curl -L -s -S -# -k -o "${TEMP_DIRS}/${pkg_name}" "$line"; then
             # Resolve RPM package dependencies: https://stackoverflow.com/questions/13876875/how-to-make-rpm-auto-install-dependencies
-            yum --nogpgcheck localinstall "$TEMP_DIRS/$pkgs_name" -y &> /dev/null || {
+            yum --nogpgcheck localinstall "$TEMP_DIRS/$pkg_name" -y > /dev/null || {
                 log_warn "please resove dependencies manually and then reinstall $pkg_name ..."
                 return 1
             }
@@ -46,30 +55,26 @@ rpm_install()
 
 yum_install()
 {
-    local repo_files="${OS_CONFIG_SRC}/config/pkgs/rpm_repo"
-    check_directory_exist "$repo_files" || return
-
-    cp -fu $repo_files/* /etc/yum.repos.d || return
-
-    # First install epel-release.noarch and centos-release-scl.noarch to get more package from repo
-    log_info "installing epel-release and centos-release-scl ..."
-    yum install -y epel-release.noarch centos-release-scl.noarch &> /dev/null || {
-        log_error "cannot install epel-release and centos-release-scl ..."
-        return 1
-    }
+    if grep -i -q "^ID.*centos" /etc/os-release; then
+        log_info "installing epel-release and centos-release-scl ..."
+        yum install -y epel-release.noarch centos-release-scl.noarch > /dev/null || {
+            log_error "cannot install epel-release and centos-release-scl ..."
+            return 1
+        }
+    fi
     log_info "installing Development Tools component ..."
-    yum groups install "Development Tools" -y &> /dev/null || {
+    yum groups install "Development Tools" -y > /dev/null || {
         log_error "cannot installing Development Tools component ..."
         return 1
     }
 
     local pkgs_name_file="${OS_CONFIG_SRC}/config/pkgs/pkgs_name.ini"
     local line_content
-    line_content=$(get_value_from_inifile "$pkgs_name_file" "install_pkgs") || return
+    line_content=$(get_value_from_inifile "$pkgs_name_file" "install_pkgs" | sed '/^$/d') || return
 
     while read -r pkg_name; do
         log_info "installing $pkg_name ..."
-        yum install -y --nogpgcheck "$pkg_name" &> /dev/null || {
+        yum install -y --nogpgcheck "$pkg_name" > /dev/null || {
             log_error "cannot to install $pkg_name ..."
             return 1
         }
@@ -85,7 +90,8 @@ pip_install()
 
     while read -r module_name; do
         log_info "installing $module_name ..."
-        pip install --index-url=https://pypi.doubanio.com/simple/ --disable-pip-version-check --log "$pip_log" "$module_name" &> /dev/null || {
+        pip install --index-url=https://pypi.doubanio.com/simple/ --disable-pip-version-check --log "$pip_log" \
+            "$module_name" > /dev/null || {
             log_error "pip install $module_name module failed, please check $pip_log"
             return 1
         }
@@ -96,7 +102,7 @@ enable_service()
 {
     local pkgs_name_file="${OS_CONFIG_SRC}/config/pkgs/pkgs_name.ini"
     local line_content
-    line_content=$(get_value_from_inifile "$pkgs_name_file" "enable_service_pkgs") || return
+    line_content=$(get_value_from_inifile "$pkgs_name_file" "enable_service_pkgs" | sed '/^$/d') || return
 
     while read -r service_name; do
         enable_start_service "$service_name" || return
@@ -116,7 +122,8 @@ clean_tmp()
 trap "clean_tmp; exit 1" EXIT INT
 TEMP_DIRS=$(mktemp -d -p "$OS_CONFIG_SRC")
 
+check_update_repo || exit
 yum_install || exit
 rpm_install || exit
-enable_service || exit
+# enable_service || exit
 pip_install || exit

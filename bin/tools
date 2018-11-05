@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -o pipefail
+
+USEFUL_TOOLS="https://github.com/lupoDharkael/flameshot/releases/download/v0.5.1/flameshot_x86_64_0.5.1.AppImage
+https://github.com/tsl0922/ttyd/releases/download/1.4.2/ttyd_linux.x86_64"
+
+download_extra_tools()
+{
+    local tool_name
+
+    while read -r url; do
+        tool_name=$(basename "$url")
+        log_info "downloading $url"
+        curl -L -s -# "$url" --create-dirs -o "${HOME}/dev-tools/bin/${tool_name}" || return
+        chmod 755 "${HOME}/dev-tools/bin/${tool_name}" || return
+    done <<< "$USEFUL_TOOLS"
+}
+
+download_dvm()
+{
+    log_info "installing docker version manager"
+
+    curl -sL https://howtowhale.github.io/dvm/downloads/latest/install.sh | bash || return
+}
+
+download_extra_tools || exit
+download_dvm || exit
