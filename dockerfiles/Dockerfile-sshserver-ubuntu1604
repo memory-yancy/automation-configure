@@ -1,0 +1,15 @@
+FROM ubuntu:16.04
+
+# https://major.io/2014/07/24/x11-forwarding-request-failed-on-channel-0/
+RUN apt-get clean && apt-get update && apt-get install -y sudo pssh openssh-server packagekit-gtk3-module vim \
+    libcanberra-gtk-module libcanberra-gtk3-module language-pack-en-base dbus-x11 fonts-wqy-microhei \
+    && echo "AddressFamily inet" >> /etc/ssh/sshd_config && mkdir /var/run/sshd \
+    && echo "root:rootroot" | chpasswd
+
+RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config && mkdir /root/.ssh \
+    && echo "Defaults   !authenticate" >> /etc/sudoers && echo "ALL     ALL=(ALL)       NOPASSWD:ALL" >> /etc/sudoers
+
+EXPOSE 22
+
+CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]
