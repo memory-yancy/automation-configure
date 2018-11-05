@@ -1,0 +1,4 @@
+# PS1 and PS2 setting
+
+export PS1="\[\e[31;1m\][\u@\[\e[31;1m\]\h \W]$\[\e[0m\] "
+export PS2="... "

@@ -1,0 +1,5 @@
+# https://github.com/wagoodman/dive#configuration
+log:
+  enabled: true
+  path: /tmp/dive.log
+  level: info
