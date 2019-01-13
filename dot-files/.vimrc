@@ -17,6 +17,9 @@ set colorcolumn=120
 highlight ColorColumn ctermbg=235 guibg=#2c2d27
 set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [POS=%l,%v][%p%%]\ %{strftime(\"%d/%m/%y\ -\ %H:%M\")}
 
+" http://blog.jobbole.com/87481/
+let mapleader = "\<Space>"
+
 " Refer to: https://github.com/PytLab/dotfiles/blob/master/.vimrc
 function! HeaderBash()
     call setline(1, "#!/bin/bash")
@@ -41,6 +44,7 @@ Plug 'https://github.com/wsdjeg/FlyGrep.vim'
 Plug 'https://github.com/easymotion/vim-easymotion'
 Plug 'https://github.com/prettier/vim-prettier'
 Plug 'https://github.com/luochen1990/rainbow'
+Plug 'https://github.com/airblade/vim-gitgutter'
 " Plug 'https://github.com/davidhalter/jedi-vim'
 Plug 'https://github.com/Valloric/YouCompleteMe'
 " Plug 'https://github.com/powerline/powerline', {'tag': '2.6'}
@@ -80,6 +84,10 @@ set encoding=utf-8
 let g:ycm_complete_in_comments = 1
 let g:ycm_autoclose_preview_window_after_completion=1
 let g:ycm_confirm_extra_conf = 0
+
+" vim-gitgutter
+set updatetime=100
+let g:gitgutter_terminal_reports_focus=0
 
 " Molokai
 " colorscheme molokai

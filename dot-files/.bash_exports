@@ -1,4 +1,4 @@
-export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="$PATH:$HOME/.cargo/bin"
 export HISTCONTROL="ignoredups:erasedups"
 
 # Proxy/VPN setting in command line mode.

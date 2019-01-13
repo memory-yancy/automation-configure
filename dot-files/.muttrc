@@ -1,3 +1,4 @@
+# https://lugatgt.org/content/mutt/downloads/presentation.pdf
 set imap_user = "memory.yancy@gmail.com"
 set imap_pass = ""
 
@@ -23,6 +24,7 @@ set sort_aux = 'reverse-last-date-received'
 set auto_tag = yes
 set editor = "vim"
 set quit = ask-yes
+set askcc = yes
 # https://unix.stackexchange.com/questions/43250/how-can-i-make-mutt-show-date-field-of-mail-on-the-index-screen
 set index_format="%4C %Z %D %-15.15L %s"
 
