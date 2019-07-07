@@ -25,4 +25,4 @@ download_dvm()
 }
 
 download_extra_tools || exit
-download_dvm || exit
+# download_dvm || exit

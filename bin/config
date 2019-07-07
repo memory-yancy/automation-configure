@@ -2,14 +2,6 @@
 
 shopt -s dotglob
 
-check_user_id()
-{
-    [[ $(id -u) = "0" ]] || {
-        log_error "please use root privilege to run it again."
-        return 1
-    }
-}
-
 common_bashrc_config()
 {
     log_info "config $HOME/.bashrc option files ..."
@@ -39,8 +31,10 @@ common_user_config()
     cp -rf $all_dot_files/* "$HOME"
 
     log_info "installing vim-plug"
-    curl -s -fLo $HOME/.vim/autoload/plug.vim --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim || return
+    curl -Lo $HOME/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim || {
+        log_error "install vim-plug failed (timeout error) ..."
+        return 1
+    }
 }
 
 root_config_docker()
@@ -56,21 +50,86 @@ root_config_docker()
 EOF
 }
 
+conda_env_install()
+{
+    local requirements="${OS_CONFIG_SRC}/config/pkgs/requirements.txt"
+    local conda_path="$1"
+    local python_version="$2"
+
+    [[ -x "$conda_path" && $(basename "$conda_path") = "conda" ]] || {
+        log_error "$conda_path is not correct conda executable program ..."
+        return 1
+    }
+    for subversion in $python_version; do
+        [[ "$subversion" =~ [1-9]{1,2}\.[0-9]{1,3} ]] || {
+            log_error "$subversion is not correct python version info for conda. e.g.: 2.7, 3.5, 3.7 ..."
+            continue
+        }
+        log_info "creating venv $subversion environment with $conda_path ..."
+        "$conda_path" env list -q | grep -q "python${subversion/./}" && {
+            log_warn "finding venv $subversion environment existed, skip ..."
+            continue
+        }
+        "$conda_path" create --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/ -n "python${subversion/./}" -y python=$subversion || return
+        if ! grep -q -v -e "^#" -e "^$" "$requirements"; then
+            log_warn "detect $requirements is empty, so pip will not install it, skip ..."
+            continue
+        fi
+        $(dirname $(dirname "$conda_path"))/envs/python${subversion/./}/bin/pip install -r $requirements -i https://mirrors.aliyun.com/pypi/simple/ || {
+            log_warn "pip install modules failed, see above output info ..."
+            continue
+        }
+    done
+}
+
+conda_install()
+{
+    # https://mirrors.tuna.tsinghua.edu.cn/news/restore-anaconda/
+    local archive_url_prefix="https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda"
+
+    for i in Miniconda3-4.7.10-Linux-x86_64.sh Miniconda2-4.7.10-Linux-x86_64.sh; do
+        log_info "download from $i ..."
+        (
+        curl -L -q -# --create-dirs -o "${HOME}/dev-tools/$i" "${archive_url_prefix}/${i}" & echo "$! 'download $i'" >> "$BG_PID_FILE"
+        )
+    done
+    wait_background_process "$BG_PID_FILE" || return
+
+    : > "$BG_PID_FILE"
+
+    find "${HOME}/dev-tools" -type f -name "Miniconda*.sh" -printf "%p\n" | while read -r line; do
+        log_info "install $line ..."
+        if [[ $(basename "$line") =~ .*2.*sh$ ]]; then
+            (/bin/bash "$line" -b -f -p "${HOME}/conda2" & echo "$! 'install $line'" >> "$BG_PID_FILE")
+        elif [[ $(basename "$line") =~ .*3.*sh$ ]]; then
+            (/bin/bash "$line" -b -f -p "${HOME}/conda3" & echo "$! 'install $line'" >> "$BG_PID_FILE")
+        fi
+    done
+    wait_background_process "$BG_PID_FILE" || return
+
+    conda_env_install "${HOME}/conda2/bin/conda" "3.5 3.6 3.7" || return
+}
+
+cleanup()
+{
+    awk '{ print $1 }' "$BG_PID_FILE" 2> /dev/null | xargs -n1 kill -9 2> /dev/null
+    rm -rf "$TEMP_DIRS"
+}
+
+trap "cleanup; exit 1" EXIT INT
+TEMP_DIRS=$(mktemp -d -p "$OS_CONFIG_SRC")
+BG_PID_FILE="${TEMP_DIRS}/os_env_config.pid"
+
 ROLE="$1"
 [[ "$ROLE" ]] || {
     log_error "role is required for $0"
     exit 1
 }
-[[ "$ROLE" = "root" || "$ROLE" = "normal" ]] || {
-    log_error "role only support root or normal keyword"
-    exit 1
-}
-if [[ "$ROLE" = "root" ]]; then
-    check_user_id || exit
-fi
+check_role_valid "$ROLE" || exit
 
 common_bashrc_config || exit
 common_user_config || exit
 [[ "$ROLE" != "root" ]] || {
     root_config_docker || exit
 }
+conda_install || exit

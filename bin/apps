@@ -81,23 +81,6 @@ yum_install()
     done <<< "$line_content"
 }
 
-pip_install()
-{
-    local requirements_file="${OS_CONFIG_SRC}/config/pkgs/requirements.txt"
-    local pip_log="/tmp/os_env_config.piplog-$RANDOM"
-    check_files_exist "$requirements_file" || return
-    check_file_validate "$requirements_file" || return
-
-    while read -r module_name; do
-        log_info "installing $module_name ..."
-        pip install --index-url=https://pypi.doubanio.com/simple/ --disable-pip-version-check --log "$pip_log" \
-            "$module_name" > /dev/null || {
-            log_error "pip install $module_name module failed, please check $pip_log"
-            return 1
-        }
-    done < "$requirements_file"
-}
-
 enable_service()
 {
     local pkgs_name_file="${OS_CONFIG_SRC}/config/pkgs/pkgs_name.ini"
@@ -122,8 +105,7 @@ clean_tmp()
 trap "clean_tmp; exit 1" EXIT INT
 TEMP_DIRS=$(mktemp -d -p "$OS_CONFIG_SRC")
 
-check_update_repo || exit
+check_update_repo
 yum_install || exit
 rpm_install || exit
 # enable_service || exit
-pip_install || exit
