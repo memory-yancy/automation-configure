@@ -4,6 +4,8 @@ set ruler
 set ignorecase
 set background=dark
 set laststatus=2
+" always display the tabline, even if there is only one tab
+set showtabline=2
 set tabstop=4
 syntax on
 set shiftwidth=4
@@ -18,7 +20,7 @@ highlight ColorColumn ctermbg=235 guibg=#2c2d27
 set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [POS=%l,%v][%p%%]\ %{strftime(\"%d/%m/%y\ -\ %H:%M\")}
 set scrolloff=7
 
-" http://blog.jobbole.com/87481/, about vim mapping:
+" about vim mapping:
 "   * https://www.zhihu.com/question/20741941
 "   * http://www.pythonclub.org/vim/map-basic
 "   * http://stevelosh.com/blog/2010/09/coming-home-to-vim/
@@ -56,15 +58,19 @@ call plug#begin('~/.vim/plugins')
 Plug 'https://github.com/junegunn/vim-easy-align'
 Plug 'https://github.com/scrooloose/nerdtree' | Plug 'https://github.com/Xuyuanp/nerdtree-git-plugin'
 Plug 'https://github.com/Chiel92/vim-autoformat'
+Plug 'https://github.com/editorconfig/editorconfig-vim'
 Plug 'https://github.com/tpope/vim-commentary'
 Plug 'https://github.com/Yggdroot/indentLine'
 Plug 'https://github.com/vim-syntastic/syntastic'
 Plug 'https://github.com/majutsushi/tagbar'
 Plug 'https://github.com/kien/ctrlp.vim'
 Plug 'https://github.com/wkentaro-archive/conque.vim'
+" theme plugin
 Plug 'https://github.com/tomasr/molokai'
 Plug 'https://github.com/wsdjeg/FlyGrep.vim'
 Plug 'https://github.com/easymotion/vim-easymotion'
+Plug 'https://github.com/haya14busa/incsearch.vim'
+Plug 'https://github.com/haya14busa/incsearch-easymotion.vim'
 Plug 'https://github.com/prettier/vim-prettier'
 Plug 'https://github.com/luochen1990/rainbow'
 Plug 'https://github.com/airblade/vim-gitgutter'
@@ -72,6 +78,7 @@ Plug 'https://github.com/airblade/vim-gitgutter'
 Plug 'https://github.com/Valloric/YouCompleteMe'
 " Plug 'https://github.com/powerline/powerline', {'tag': '2.6'}
 " Plug 'https://github.com/vim-airline/vim-airline'
+Plug 'https://github.com/liuchengxu/vim-which-key'
 call plug#end()
 
 " NERDTree
@@ -80,6 +87,13 @@ nmap <F7> :NERDTreeToggle<CR>
 
 " Tagbar
 let g:tagbar_width = 30
+" https://github.com/jstemmer/gotags
+let g:tagbar_type_go = {
+    \ 'ctagstype': 'go',
+    \ 'kinds': ['p:package', 'i:imports:1', 'c:constants', 'v:variables', 't:types', 'n:interfaces', 'w:fields', 'e:embedded', 'm:methods', 'r:constructor', 'f:functions'],
+    \ 'sro': '.', 'kind2scope': {'t': 'ctype', 'n': 'ntype'}, 'scope2kind':{'ctype': 't', 'ntype': 'n'},
+    \ 'ctagsbin': expand('~/go/bin/gotags'), 'ctagsargs': '-sort -silent'
+    \ }
 nmap <F8> :TagbarToggle<CR>
 
 " Jedi-vim
@@ -131,3 +145,16 @@ let g:autoformat_verbosemode=1
 
 " indentLine
 " Keep original format for JSON if not IndentLinesDisable, see: https://github.com/Yggdroot/indentLine/issues/140#issuecomment-357620391
+
+" vim-easyMotion
+" https://github.com/easymotion/vim-easymotion#integration-with-incsearchvim
+function! s:incsearch_config(...) abort
+  return incsearch#util#deepextend(deepcopy({
+  \   'modules': [incsearch#config#easymotion#module({'overwin': 1})],
+  \   'keymap': {
+  \     "\<CR>": '<Over>(easymotion)'
+  \   },
+  \   'is_expr': 0
+  \ }), get(a:, 1, {}))
+endfunction
+noremap <silent><expr> /  incsearch#go(<SID>incsearch_config())
