@@ -1,0 +1,6 @@
+# For gitconfig configuration in `tig`, add [tig] section
+set main-view-line-number = display=yes,interval=3
+set main-view-id = display=yes,width=0
+set main-view-commit-title = graph=v1
+set diff-view-line-number = display=yes,interval=1
+set tab-size = 4

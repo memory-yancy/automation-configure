@@ -1,0 +1,17 @@
+# sample configuration: pylint --generate-rcfile
+[FORMAT]
+max-line-length=120
+expected-line-ending-format=LF
+
+[MASTER]
+jobs=0
+persistent=no
+
+[IMPORTS]
+# refer to: pylint.checkers.imports._dependencies_graph
+import-graph=/tmp/pylint-dependencies-graph.png
+
+[REPORTS]
+output-format=colorized
+reports=yes
+score=yes
